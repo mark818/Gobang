@@ -1,14 +1,15 @@
+#include <WinSock2.h>
 #include "network.h"
 #include "ui.h"
 
-UI* Chat_Client::ui = 0;
+UI* Network::ui = 0;
 
-Chat_Client::Chat_Client(char* ipad, int port, UI *p) : port(port), quit(false)  {
+Network::Network(char* ipad, int port, UI *p) : port(port), quit(false)  {
 	ui = p;
 	strcpy(ip, ipad);
 }
 
-bool Chat_Client::ClientInit() {
+bool Network::ClientInit() {
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port);
 	addr.sin_addr.S_un.S_addr = inet_addr(ip);
@@ -26,7 +27,7 @@ bool Chat_Client::ClientInit() {
 	return 0;
 }
 
-bool Chat_Client::ClientConnect() {
+bool Network::ClientConnect() {
 
 	if (connect(clt, reinterpret_cast<sockaddr*>(&addr), sizeof(sockaddr_in))) {
 		char a[50];
@@ -35,43 +36,19 @@ bool Chat_Client::ClientConnect() {
 		return 1;
 	}
 	send(clt, "connect", 100, 0);
-	if (_beginthread(PullFromServer, 0, (void*)this) == -1L) {
-		MessageBoxA(0, "Error creating worker thread", "Connect failed", MB_OK);
-		return 1;
-	}
+	//CreateThread(0, 0, PullFromServer, this, 0, 0);
 	return 0;
 }
 
-void Chat_Client::SendMsg(const char* msg) {
+void Network::SendMsg(const char* msg) {
 	send(clt, msg, 100, 0);
 }
 
-bool Chat_Client::Close() {
+bool Network::Close() {
 	send(clt, "t", 1, 0);
 	quit = true;
 	closesocket(clt);
 	WSACleanup();
 	return 0;
-}
-
-void __stdcall Chat_Client::PullFromServer(void* data) {
-	Chat_Client* self = static_cast<Chat_Client*>(data);
-	char buffer[100];
-	while (!self->quit && recv(self->clt, buffer, 100, 0) > 0) {
-		if (strcmp(buffer, "chat")) {
-			recv(self->clt, buffer, 100, 0);
-			EnterCriticalSection(&(ui->crit));
-			strcpy_s(ui->text, 100, buffer);
-			SetEvent(ui->event);
-		}
-		else if (strcmp(buffer, "put")) {
-			recv(self->clt, buffer, 100, 0);
-			ui->put(buffer[0], buffer[1]);
-		}
-		else if (strcmp(buffer, "quit")) {
-			self->quit = true;
-		}
-	}
-	self->quit = true;
 }
 

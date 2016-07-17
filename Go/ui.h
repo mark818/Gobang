@@ -32,5 +32,5 @@ private:
 	static LRESULT _stdcall About(HWND, UINT, WPARAM, LPARAM) ;
 	static LRESULT _stdcall EDIT(HWND, UINT, WPARAM, LPARAM, UINT_PTR, DWORD_PTR) ;
 	Game game;
-	//Chat_Client net;
+	//Network net;
 };
